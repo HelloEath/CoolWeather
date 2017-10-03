@@ -1,6 +1,7 @@
 package com.example.yy.coolweather;
 
 import android.app.ProgressDialog;
+import android.content.Intent;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
 import android.util.Log;
@@ -72,7 +73,8 @@ public class ChooseAreaFragment extends Fragment {
         titleText= (TextView) view.findViewById(R.id.title_text);
         backBtn= (Button) view.findViewById(R.id.back_btn);
         listView= (ListView) view.findViewById(R.id.list_view);
-        adapter=new ArrayAdapter<String>(getContext(),android.R.layout.simple_expandable_list_item_1,dataList);
+
+        adapter=new ArrayAdapter<String>(getContext(),android.R.layout.simple_list_item_1,dataList);
         listView.setAdapter(adapter);
 
         return view;
@@ -91,6 +93,26 @@ public class ChooseAreaFragment extends Fragment {
                     
                     selectedCity=cityList.get(position);
                     queryCounties();
+                }else if (currentLevel==LEVEL_COUNTY){
+
+
+                    //跳转到天气界面
+                    String weatherId=countyList.get(position).getWeatherId();
+                    if (getActivity() instanceof MainActivity){
+                        Intent intent=new Intent(getActivity(),WeatherActivity.class);
+                        Log.d("天气ID：",weatherId);
+                        intent.putExtra("weather_id",weatherId);
+                        startActivity(intent);
+                        getActivity().finish();
+                    }else if (getActivity() instanceof  WeatherActivity){
+                       //获取到weatherActuvity实例并关闭侧边栏，刷新天气数据
+                        WeatherActivity activity= (WeatherActivity) getActivity();
+                        activity.drawerLayout.closeDrawers();
+                        activity.swipeRefreshLayout.setRefreshing(true);
+                        activity.requestWeather(weatherId);
+
+                    }
+
                 }
             }
         });
@@ -120,6 +142,7 @@ public class ChooseAreaFragment extends Fragment {
         if (provinceList.size()>0){
             dataList.clear();
             for (Province Province : provinceList){
+                Log.d("数据库存入省名",Province.getProvinceName());
                 dataList.add(Province.getProvinceName());
             }
             adapter.notifyDataSetChanged();
@@ -136,12 +159,13 @@ public class ChooseAreaFragment extends Fragment {
 */
     private void queryCity() {
 titleText.setText(setlectPro.getProvinceName());
-        backBtn.setVisibility(View.GONE);
+        backBtn.setVisibility(View.VISIBLE);
         /*从数据区查询数据【帶參數】*/
-        cityList=DataSupport.where("provinceid=?",String.valueOf(setlectPro.getId())).find(City.class);
+        cityList=DataSupport.where("provinced=?",String.valueOf(setlectPro.getId())).find(City.class);
         if (cityList.size()>0){
             dataList.clear();
             for (City city: cityList){
+                Log.d("数据库存入城市名",city.getCityName());
                 dataList.add(city.getCityName());//把市名字加入集合
             }
             adapter.notifyDataSetChanged();//通知listview數據改變
@@ -150,6 +174,7 @@ titleText.setText(setlectPro.getProvinceName());
         }else{
             int provinceCode=setlectPro.getProvinceCode();
             String address="http://guolin.tech/api/china/"+provinceCode;
+
             queryFromServer(address,"city");
         }
 
@@ -162,11 +187,12 @@ titleText.setText(setlectPro.getProvinceName());
     private void queryCounties() {
 
         titleText.setText(selectedCity.getCityName());
-        backBtn.setVisibility(View.GONE);
+        backBtn.setVisibility(View.VISIBLE);
         countyList=DataSupport.where("cityId=?",String.valueOf(selectedCity.getId())).find(County.class);
         if (countyList.size()>0){
             dataList.clear();
             for (County county:countyList){
+                Log.d("数据库存入县名",county.getCountyName());
                 dataList.add(county.getCountyName());
             }
             adapter.notifyDataSetChanged();
@@ -176,7 +202,7 @@ titleText.setText(setlectPro.getProvinceName());
 
             int provinceCode=setlectPro.getProvinceCode();
             int cityCode=selectedCity.getCityCode();
-            String address="http://guoilin.tech/api/china/"+provinceCode+"/"+cityCode;
+            String address="http://guolin.tech/api/china/"+provinceCode+"/"+cityCode;
             queryFromServer(address,"county");
         }
 
